@@ -1,0 +1,70 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setting up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: addon
+          path: build/libs/*.jar
+
+      - name: Publish snapshot release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          JAR=$(find build/libs -name '*.jar' -not -name '*-sources.jar' | head -n1)
+          [ -n "$JAR" ] || { echo "[ERROR] no jar in build/libs" >&2; exit 1; }
+
+          NOTES="Automatic build of \`${GITHUB_SHA::7}\` from \`main\`.
+
+          Not a stable release - it tracks whatever is on main right now."
+
+          # Recreate rather than edit: `gh release upload --clobber` cannot retarget the tag when
+          # main has moved on.
+          gh release delete snapshot --cleanup-tag --yes || true
+          gh release create snapshot "$JAR" \
+            --title "Snapshot" \
+            --notes "$NOTES" \
+            --prerelease \
+            --target "$GITHUB_SHA"
+
+      - name: Attach jar to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          JAR=$(find build/libs -name '*.jar' -not -name '*-sources.jar' | head -n1)
+          [ -n "$JAR" ] || { echo "[ERROR] no jar in build/libs" >&2; exit 1; }
+
+          gh release upload "${{ github.event.release.tag_name }}" "$JAR" --clobber

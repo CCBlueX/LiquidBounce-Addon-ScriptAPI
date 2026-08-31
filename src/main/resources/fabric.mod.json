@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "example-addon",
+  "version": "${version}",
+  "name": "Example Addon",
+  "description": "An add-on template for LiquidBounce add-ons.",
+  "authors": [
+    "You"
+  ],
+  "contact": {
+    "homepage": "https://liquidbounce.net/",
+    "sources": "https://github.com/CCBlueX/LiquidBounce-Addon-Template",
+    "issues": "https://github.com/CCBlueX/LiquidBounce-Addon-Template/issues"
+  },
+  "license": "GPL-3.0-or-later",
+  "icon": "assets/example-addon/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "liquidbounce": [
+      "com.example.addon.ExampleAddon"
+    ]
+  },
+  "mixins": [
+    "example-addon.mixins.json"
+  ],
+  "accessWidener": "example-addon.accesswidener",
+  "depends": {
+    "minecraft": ">=${minecraft_version}",
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${fabric_kotlin_version}",
+    "liquidbounce": "*"
+  },
+  "custom": {
+    "liquidbounce": {
+      "color": "#FF5555"
+    },
+    "modmenu": {
+      "parent": "liquidbounce"
+    }
+  }
+}

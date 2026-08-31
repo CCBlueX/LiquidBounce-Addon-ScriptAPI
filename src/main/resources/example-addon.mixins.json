@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.addon.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "MixinExampleTitleScreen"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
