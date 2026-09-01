@@ -1,0 +1,5 @@
+accessWidener	v1	official
+
+# The engine reaches the game only through LiquidBounce's public API, so nothing needs widening
+# yet. LiquidBounce's own access widener does not propagate to add-ons - add entries here if a
+# binding ever needs one.

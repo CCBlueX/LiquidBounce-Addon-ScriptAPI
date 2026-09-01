@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.ModuleDependency
+
 plugins {
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.kotlin.jvm)
@@ -11,7 +13,6 @@ base {
 
 repositories {
     mavenCentral()
-    // Lets you test against a locally built client (`./gradlew publishToMavenLocal` in LiquidBounce).
     mavenLocal()
     maven {
         name = "CCBlueX Releases"
@@ -28,26 +29,67 @@ repositories {
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/example-addon.accesswidener")
+    accessWidenerPath = file("src/main/resources/liquidbounce-scriptapi.accesswidener")
 }
 
-// Two things to leave alone here:
-//
-// 1. There is no `mappings(...)` line. LiquidBounce declares none either, and Loom defaults to
-//    Mojang official mappings for this Minecraft version. A different mapping set produces an
-//    add-on that compiles and then fails on every Minecraft call.
-// 2. Dependencies use plain `implementation`, not `modImplementation`. This Loom version has no
-//    remapping step - the development and production namespaces are both Mojang official - so the
-//    `mod*` configurations do not exist. LiquidBounce's own build does the same.
+/**
+ * Nests a dependency and everything it pulls in as jar-in-jar, the way the client does it.
+ * `include(...)` on its own only takes the named artifact, and GraalVM's dependency graph is deep.
+ */
+val jij: Configuration = configurations.create("jij").apply {
+    // Supplied by Minecraft or fabric-language-kotlin at runtime; bundling them again would
+    // shadow the game's own copies.
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-reflect")
+    exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core")
+    exclude(group = "it.unimi.dsi", module = "fastutil")
+    exclude(group = "com.google.guava", module = "guava")
+    exclude(group = "com.google.code.gson", module = "gson")
+    exclude(group = "org.apache.logging.log4j", module = "log4j-core")
+    exclude(group = "org.apache.logging.log4j", module = "log4j-api")
+    exclude(group = "org.slf4j", module = "slf4j-api")
+}
+
 dependencies {
     minecraft(libs.minecraft)
 
     implementation(libs.fabric.loader)
     implementation(libs.fabric.api)
     implementation(libs.fabric.kotlin)
-
-    // The client itself; there is no separate API artifact.
     implementation(libs.liquidbounce)
+
+    // ScriptAPI
+    jij(libs.polyglot)
+    jij(libs.polyglot.js)
+    jij(libs.polyglot.tools)
+
+    // Used by ScriptAsyncUtil.request; the client bundles it too, but an add-on cannot rely on
+    // another mod's nested jars being on its classpath.
+    compileOnly(libs.okhttp)
+
+    // Inline-only extensions the client compiles against as `compileOnlyApi`, so they are not in
+    // its POM and have to be declared again here.
+    compileOnly(libs.fastutil4k.extensionsOnly)
+
+    testImplementation(kotlin("test"))
+}
+
+// Every resolved jij artifact has to reach four places: `compileOnly` to build against, `include`
+// to nest in the jar, `testImplementation` because ScriptCommandBuilderTest starts a real polyglot
+// Context, and `runtimeOnly` for `runClient` - nested jars are only unpacked from a built mod jar,
+// so without it the development run has no GraalVM on its classpath.
+run {
+    val resolved = jij.incoming.resolutionResult.allDependencies.map { dep ->
+        dependencies.create(dep.requested.displayName) {
+            (this as? ModuleDependency)?.isTransitive = false
+        }
+    }
+
+    listOf("compileOnly", "include", "runtimeOnly", "testImplementation").forEach { name ->
+        configurations.named(name).configure {
+            withDependencies { addAll(resolved) }
+        }
+    }
 }
 
 tasks.processResources {
@@ -76,6 +118,10 @@ tasks.processResources {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release = libs.versions.jdk.get().toInt()
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 java {

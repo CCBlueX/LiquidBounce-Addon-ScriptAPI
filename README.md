@@ -1,86 +1,84 @@
-# LiquidBounce Add-on Template
+# LiquidBounce ScriptAPI
 
-A starting point for a [LiquidBounce](https://github.com/CCBlueX/LiquidBounce) add-on.
+The JavaScript Script API for [LiquidBounce](https://github.com/CCBlueX/LiquidBounce), packaged as
+an add-on.
 
-```mermaid
-flowchart TD
-    jar["mods/your-addon.jar"] --> discover
+It is built on [GraalJS](https://github.com/oracle/graaljs), an ECMAScript 2023 compliant JavaScript
+implementation on [GraalVM](https://www.graalvm.org). GraalVM's polyglot support lets scripts reach
+straight into the client's Java and Kotlin classes, so anyone familiar with Minecraft modding will
+recognise most of it.
 
-    subgraph startup ["LiquidBounce startup"]
-        direction TB
-        discover["AddonManager.discover()"]
-        regcat["registerCategories()"]
-        init["initializeAddons()"]
-        loadAll["ConfigSystem.loadAll()"]
-        notify["notifyConfigsLoaded()"]
-        shutdown["AddonManager.shutdown()"]
-        storeAll["ConfigSystem.storeAll()"]
-    end
+## Installing
 
-    discover --> regcat --> init --> loadAll --> notify
-    notify --> running(["game running"])
-    running --> shutdown --> storeAll
+Download `liquidbounce-scriptapi-*.jar` from the [releases](../../releases) and drop it into your
+`mods/` folder next to LiquidBounce, then restart the game. `.addon list` should show it.
 
-    regcat -. your code .-> h1["onRegisterCategories()<br/>registerCategory(...)"]
-    init -. your code .-> h2["onInitialize()<br/>registerModules / registerCommand / config"]
-    notify -. your code .-> h3["onConfigsLoaded()<br/>settings are restored"]
-    shutdown -. your code .-> h4["onShutdown()<br/>flush state"]
+Scripts go in `.minecraft/LiquidBounce/scripts/`, either as a single `.js` file or as a directory
+containing a `main.js`.
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `.script list` | Lists every installed script |
+| `.script browse` | Opens the scripts folder |
+| `.script load <name>` | Loads a single script |
+| `.script unload <name>` | Unloads a single script |
+| `.script reload` | Reloads every script, picking up newly added ones |
+| `.script edit <name>` | Opens a script in your default editor |
+| `.script debug <name> [protocol] [suspendOnStart] [inspectInternals] [port]` | Runs a script with a debugger attached |
+
+`debug` defaults to Chrome DevTools (`INSPECT`, port 4242); `DAP` uses port 4711 instead.
+
+## Documentation
+
+Full documentation lives at [liquidbounce.net](https://liquidbounce.net/docs/script-api/installation).
+
+**Getting started**
+
+- [Installation](https://liquidbounce.net/docs/script-api/installation)
+- [Introduction](https://liquidbounce.net/docs/script-api/getting-started)
+- [Using Java classes](https://liquidbounce.net/docs/script-api/using-java-classes)
+- [Global instances](https://liquidbounce.net/docs/script-api/global-instances)
+- [Debugging](https://liquidbounce.net/docs/script-api/debugging)
+
+**Writing features**
+
+- [Creating modules](https://liquidbounce.net/docs/script-api/creating-modules/overview)
+- [Creating commands](https://liquidbounce.net/docs/script-api/creating-commands)
+
+**Global classes**
+
+| Class | Purpose |
+|---|---|
+| [Client](https://liquidbounce.net/docs/script-api/global-classes/client) | The client itself: managers, chat output |
+| [Setting](https://liquidbounce.net/docs/script-api/global-classes/setting) | Module and command settings |
+| [AsyncUtil](https://liquidbounce.net/docs/script-api/global-classes/asyncutil) | Tick scheduling, promises, HTTP requests |
+| [BlockUtil](https://liquidbounce.net/docs/script-api/global-classes/blockutil) | Block positions and block state |
+| [ItemUtil](https://liquidbounce.net/docs/script-api/global-classes/itemutil) | Item stacks |
+| [InteractionUtil](https://liquidbounce.net/docs/script-api/global-classes/interactionutil) | Attacking and placing |
+| [MovementUtil](https://liquidbounce.net/docs/script-api/global-classes/movementutil) | Player movement |
+| [NetworkUtil](https://liquidbounce.net/docs/script-api/global-classes/networkutil) | Packets |
+| [RotationUtil](https://liquidbounce.net/docs/script-api/global-classes/rotationutil) | Aiming |
+| [ReflectionUtil](https://liquidbounce.net/docs/script-api/global-classes/reflectionutil) | Reaching non-public members |
+| [ParameterValidator](https://liquidbounce.net/docs/script-api/global-classes/parametervalidator) | Command argument validation |
+| [Primitives](https://liquidbounce.net/docs/script-api/global-classes/primitives) | Explicit JVM numeric coercion |
+
+## Building
+
+```
+./gradlew build
 ```
 
-## Requirements
+Requires JDK 25. The add-on compiles against a published LiquidBounce build, set in
+`gradle/libs.versions.toml`. To build against a local client, run `./gradlew publishToMavenLocal`
+in a LiquidBounce checkout first.
 
-- JDK 25
-- A LiquidBounce build to compile against (a published snapshot, or one you built yourself)
+## TypeScript definitions
 
-## Getting started
-
-1. Click **Use this template** on GitHub, or `git clone --depth 1` this repository.
-2. Rename things away from the example. There are eight places:
-
-   | File | What to change |
-   |---|---|
-   | `settings.gradle.kts` | `rootProject.name` |
-   | `gradle.properties` | `maven_group`, `archives_base_name` |
-   | `src/main/resources/fabric.mod.json` | `id`, `name`, `description`, `authors`, the entrypoint class |
-   | `src/main/resources/example-addon.mixins.json` | filename, and the `package` |
-   | `src/main/resources/example-addon.accesswidener` | filename (and `loom.accessWidenerPath` in `build.gradle.kts`) |
-   | `src/main/resources/resources/example-addon/lang/` | folder name, which must match your add-on id |
-   | `src/main/resources/assets/example-addon/` | folder name, and the `icon` path |
-   | `src/main/kotlin/com/example/addon/` | package name |
-
-3. `./gradlew build`, then drop `build/libs/<your-addon>.jar` into your `mods/` folder next to
-   LiquidBounce.
-4. In game, `.addon list` should show it, and `.example` should answer.
-
-## Targeting a LiquidBounce version
-
-`gradle/libs.versions.toml`:
-
-```toml
-liquidbounce = "0.40.1+26.2-SNAPSHOT"
-```
-
-- `<version>+<mc>` for a release, from `maven.ccbluex.net/releases`
-- `<version>+<mc>-SNAPSHOT` for the moving nextgen build, from `maven.ccbluex.net/snapshots`
-- `<version>+<mc>-<sha>-SNAPSHOT` to pin one commit
-
-To build against a local client, run `./gradlew publishToMavenLocal` in a LiquidBounce checkout;
-`mavenLocal()` is already in this template's repositories.
-
-**Do not add a `mappings(...)` line.** LiquidBounce declares none either, and Loom defaults to
-Mojang official mappings for this Minecraft version. A different mapping set produces an add-on that
-compiles and then fails on every Minecraft call.
-
-## What the example covers
-
-- `ExampleAddon`, the entrypoint and its lifecycle hooks
-- `ExampleCategories`, a custom ClickGUI category
-- `modules/ModuleExample`, a `ClientModule` with settings and a tick handler
-- `commands/CommandExample`, a Brigadier command
-- `mixin/MixinExampleTitleScreen`, a Mixin into a vanilla class
-- `resources/example-addon/lang/en_us.json`, translations merged into the client's language files
-
-Client translation keys always win on collision, so an add-on cannot redefine a built-in string.
+`ts-defgen.js` is itself a LiquidBounce script that walks the client's classes and emits TypeScript
+definitions, published to npm as `@ccbluex/liquidbounce-script-api`. The
+`generate-definitions` workflow runs it.
 
 ## License
 
