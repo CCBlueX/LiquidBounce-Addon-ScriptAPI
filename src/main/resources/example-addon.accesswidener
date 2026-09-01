@@ -1,4 +1,0 @@
-accessWidener	v1	official
-
-# LiquidBounce's own access widener does NOT propagate to add-ons - every entry there is a plain
-# `accessible`/`mutable`, not `transitive-`. Widen anything you need yourself, here.

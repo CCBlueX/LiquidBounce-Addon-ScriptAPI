@@ -1,5 +1,0 @@
-{
-  "liquidbounce.module.example.description": "Greets you at a configurable interval.",
-  "liquidbounce.module.example.value.interval.description": "Ticks between greetings.",
-  "liquidbounce.module.example.value.greeting.description": "The message to send."
-}

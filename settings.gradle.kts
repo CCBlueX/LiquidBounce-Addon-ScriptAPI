@@ -9,4 +9,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "ExampleAddon"
+rootProject.name = "LiquidBounce-Addon-ScriptAPI"
