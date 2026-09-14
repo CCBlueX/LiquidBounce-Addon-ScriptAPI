@@ -10,9 +10,9 @@ script.registerModule({
   description: "Jumps automatically for you."
 }, (mod) => { 
   mod.on("disable", () => {
-    mc.options.jumpKey.setPressed(false);
+    mc.options.keyJump.setDown(false);
   });
   mod.on("playerTick", () => {
-    mc.options.jumpKey.setPressed(true);
+    mc.options.keyJump.setDown(true);
   });
 });

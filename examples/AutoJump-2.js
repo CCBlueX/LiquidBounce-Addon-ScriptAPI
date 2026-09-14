@@ -10,6 +10,6 @@ script.registerModule({
   description: "Jumps automatically for you."
 }, (mod) => { 
   mod.on("movementInput", (event) => {
-    event.setJumping(true);
+    event.setJump(true);
   });
 });
