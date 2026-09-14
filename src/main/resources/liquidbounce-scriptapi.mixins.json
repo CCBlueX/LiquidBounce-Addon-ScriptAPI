@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.ccbluex.liquidbounce.injection.mixins",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "liquidbounce.MixinModuleManager",
+    "liquidbounce.MixinValue",
+    "truffle.MixinCallerSensitiveDetection",
+    "truffle.MixinCommonJSRequireBuiltin",
+    "truffle.MixinNpmCompatibleESModuleLoader",
+    "truffle.MixinTruffleLanguage"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "liquidbounce-scriptapi",
+  "version": "${version}",
+  "name": "LiquidBounce ScriptAPI",
+  "description": "Brings the JavaScript Script API to LiquidBounce as an add-on.",
+  "authors": [
+    "CCBlueX"
+  ],
+  "contact": {
+    "homepage": "https://liquidbounce.net/",
+    "sources": "https://github.com/CCBlueX/LiquidBounce-Addon-ScriptAPI",
+    "issues": "https://github.com/CCBlueX/LiquidBounce-Addon-ScriptAPI/issues"
+  },
+  "license": "GPL-3.0-or-later",
+  "environment": "client",
+  "entrypoints": {
+    "liquidbounce": [
+      "net.ccbluex.liquidbounce.script.ScriptApiAddon"
+    ]
+  },
+  "mixins": [
+    "liquidbounce-scriptapi.mixins.json"
+  ],
+  "accessWidener": "liquidbounce-scriptapi.accesswidener",
+  "depends": {
+    "minecraft": ">=${minecraft_version}",
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${fabric_kotlin_version}",
+    "liquidbounce": "*"
+  },
+  "custom": {
+    "liquidbounce": {
+      "color": "#F7DF1E"
+    },
+    "modmenu": {
+      "parent": "liquidbounce"
+    }
+  }
+}
