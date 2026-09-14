@@ -42,16 +42,16 @@ const clientCommandPrefix = "."; // TODO: Get from client
 const macros = readMacros();
 
 script.registerModule({
-    name: "Macros",
+    name: "KeyMacros",
     description: "Allows you to bind commands to keys.",
-    category: "Client"
+    category: "Misc"
 }, (module) => {
     module.on("key", (event) => {
         if (event.getAction() !== 1) {
             return;
         }
         
-        const key = event.getKey().getTranslationKey().split(".").pop();
+        const key = event.getKey().getName().split(".").pop();
 
         const command = macros[key];
 
@@ -74,7 +74,7 @@ script.registerModule({
 
 
 script.registerCommand({
-    name: "macroy",
+    name: "macros",
     aliases: ["macro"],
     hub: true,
     subcommands: [
@@ -91,9 +91,7 @@ script.registerCommand({
                     vararg: true
                 }
             ],
-            onExecute(key, commandParts) {
-                const command = commandParts.join(" ");
-
+            onExecute(key, command) {
                 macros[key] = command;
 
                 writeMacros();
