@@ -67,3 +67,31 @@ jobs:
           [ -n "$JAR" ] || { echo "[ERROR] no jar in build/libs" >&2; exit 1; }
 
           gh release upload "${{ github.event.release.tag_name }}" "$JAR" --clobber
+
+  gametest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setting up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+      - name: Run game tests
+        run: ./gradlew runClientGameTest
+
+      - name: Upload game test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gametest
+          path: |
+            build/run/clientGameTest/scriptapi-gametest.json
+            build/run/clientGameTest/screenshots/
+            build/run/clientGameTest/logs/latest.log
+          if-no-files-found: ignore
