@@ -74,6 +74,21 @@ Requires JDK 25. The add-on compiles against a published LiquidBounce build, set
 `gradle/libs.versions.toml`. To build against a local client, run `./gradlew publishToMavenLocal`
 in a LiquidBounce checkout first.
 
+## Testing
+
+```
+./gradlew runClientGameTest
+```
+
+Starts the client, creates a world and runs every script in [examples](examples) in it. It needs a
+display; with `CI` set and Xvfb installed, Loom runs it under `xvfb-run`.
+
+- `-Pgametest.only=macros.js,nes_emulator` runs only the named cases.
+- `build/run/clientGameTest/scriptapi-gametest.json` holds every case's status, detail and chat
+  output. Screenshots are in `screenshots/` next to it, the log in `logs/latest.log`.
+- The task fails if a case fails. A case is skipped instead when the network gets in the way:
+  Google Translate for `translator.js`, the nestest ROM download for `nes_emulator`.
+
 ## TypeScript definitions
 
 `ts-defgen.js` is itself a LiquidBounce script that walks the client's classes and emits TypeScript

@@ -32,6 +32,22 @@ loom {
     accessWidenerPath = file("src/main/resources/liquidbounce-scriptapi.accesswidener")
 }
 
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "liquidbounce-scriptapi-gametest"
+        enableGameTests = false
+    }
+}
+
+loom.runs.named("clientGameTest") {
+    // Otherwise the client downloads and starts a browser for its web UI, which no test touches.
+    environmentVariable("LB_BROWSER_SKIP", "true")
+    environmentVariable("LB_INTEROP_SKIP", "true")
+    property("scriptapi.gametest.examples", file("examples").absolutePath)
+    providers.gradleProperty("gametest.only").orNull?.let { property("scriptapi.gametest.only", it) }
+}
+
 /**
  * Nests a dependency and everything it pulls in as jar-in-jar, the way the client does it.
  * `include(...)` on its own only takes the named artifact, and GraalVM's dependency graph is deep.

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "liquidbounce-scriptapi-gametest",
+  "version": "1.0.0",
+  "name": "LiquidBounce ScriptAPI Game Tests",
+  "license": "GPL-3.0-or-later",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "net.ccbluex.liquidbounce.script.gametest.ExampleScriptsGameTest"
+    ]
+  },
+  "depends": {
+    "liquidbounce-scriptapi": "*",
+    "fabric-client-gametest-api-v1": "*"
+  }
+}
