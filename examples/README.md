@@ -6,6 +6,10 @@ The following examples are currently available:
 
 - [macros.js](macros.js): Allows binding client and server commands as well as chat messages to a key.
 
-- [Autojump.mjs](AutoJump.mjs): Jumps automatically on every tick. Made for LiquidBounce Nextgen.
+- [AutoJump.mjs](AutoJump.mjs): Jumps automatically by holding down the jump key.
 
-- [Autojump-2.js](AutoJump-2.js): Jumps automatically on every tick. Made for LiquidBounce Legacy.
+- [AutoJump-2.js](AutoJump-2.js): Jumps automatically through the `movementInput` event.
+
+- [translator.js](translator.js): Translates text through Google Translate with `.gtranslate <from> <to> <text>`.
+
+- [nes_emulator](nes_emulator): Plays NES games in the client. ROMs go in `LiquidBounce/scripts/nes_emulator/roms`.
