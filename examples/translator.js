@@ -7,8 +7,8 @@ const script = registerScript({
 });
 
 script.registerCommand({
-  name: "translate",
-  aliases: ["tr"],
+  name: "gtranslate",
+  aliases: ["gtr"],
   parameters: [
     {
       name: "sourceLanguage",
@@ -30,10 +30,8 @@ script.registerCommand({
       description: "The text to translate",
     },
   ],
-  onExecute: async (sourceLanguage, targetLanguage, texts) => {
+  onExecute: async (sourceLanguage, targetLanguage, text) => {
     try {
-      const text = texts.join(" ");
-
       const response = await AsyncUtil.request((builder) => {
         builder.url(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLanguage}&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(
           text
