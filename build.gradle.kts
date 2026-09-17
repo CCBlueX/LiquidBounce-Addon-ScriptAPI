@@ -48,6 +48,17 @@ loom.runs.named("clientGameTest") {
     providers.gradleProperty("gametest.only").orNull?.let { property("scriptapi.gametest.only", it) }
 }
 
+// The startup case needs its scripts in place before the client starts.
+val seedGameTestScripts = tasks.register<Sync>("seedGameTestScripts") {
+    mustRunAfter("deleteGameTestRunDir")
+    from("src/gametest/scripts")
+    into(layout.buildDirectory.dir("run/clientGameTest/LiquidBounce/scripts"))
+}
+
+tasks.matching { it.name == "runClientGameTest" }.configureEach {
+    dependsOn(seedGameTestScripts)
+}
+
 /**
  * Nests a dependency and everything it pulls in as jar-in-jar, the way the client does it.
  * `include(...)` on its own only takes the named artifact, and GraalVM's dependency graph is deep.

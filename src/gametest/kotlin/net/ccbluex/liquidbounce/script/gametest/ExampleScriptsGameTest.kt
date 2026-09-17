@@ -20,6 +20,10 @@ package net.ccbluex.liquidbounce.script.gametest
 
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.platform.NativeImage
+import net.ccbluex.liquidbounce.features.addon.AddonManager
+import net.ccbluex.liquidbounce.features.addon.AddonState
+import net.ccbluex.liquidbounce.features.command.CommandManager
+import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.script.ScriptManager
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -45,6 +49,7 @@ class ExampleScriptsGameTest : FabricClientGameTest {
 
     override fun runTest(context: ClientGameTestContext) {
         val harness = GameTestHarness(context)
+        harness.case("startup") { startup() }
         harness.case("AutoJump.mjs") { autoJump("AutoJump.mjs") }
         harness.case("AutoJump-2.js") { autoJump("AutoJump-2.js") }
         harness.case("macros.js") { macros() }
@@ -53,6 +58,49 @@ class ExampleScriptsGameTest : FabricClientGameTest {
         harness.runCases()
     }
 
+}
+
+/**
+ * The scripts directory holds two scripts from the start: `clash.js` cannot be enabled, `broken.js` does not
+ * even parse.
+ */
+private fun Case.startup(): String {
+    val state = client { AddonManager["liquidbounce-scriptapi"]?.state }
+    check(state == AddonState.LOADED) { "add-on is $state" }
+    check(client { CommandManager.isRootTaken("script") }) { ".script is not registered" }
+    check(client { ModuleManager["ClashProbe"] } == null) { "ClashProbe survived the failed enable" }
+
+    val failed = client {
+        ScriptManager.scripts.mapNotNull { script -> script.failure?.let { script.displayName to it.origin } }.toMap()
+    }
+    check(failed == mapOf("Clash" to "enable", "broken.js" to "load")) { "failed scripts are $failed" }
+
+    command("script list")
+    val clash = awaitChat(20) { "Clash (clash.js)" in it } ?: error(".script list does not mention Clash")
+    check("'HighJump' is already registered" in clash) { "no reason given: $clash" }
+    val broken = awaitChat(20) { "Script broken.js failed" in it } ?: error(".script list does not mention broken.js")
+    check("SyntaxError" in broken) { "no reason given: $broken" }
+
+    command("script errors Clash")
+    awaitChat(20) { it.endsWith("enable: Module 'HighJump' is already registered.") }
+        ?: error(".script errors does not show the failed enable")
+
+    // Still broken, so it has to fail the same way each time instead of counting as loaded.
+    repeat(2) { command("script load clash.js") }
+    awaitChat(20) { "Failed to load script" in it } ?: error(".script load did not report the failure")
+    check(context.chatLines().none { "is already loaded" in it }) { "clash.js counts as loaded after failing" }
+    check(client { ScriptManager.scripts.count { it.file.name == "clash.js" } } == 1) { "clash.js is listed twice" }
+    check(client { ModuleManager["ClashProbe"] } == null) { "ClashProbe survived .script load" }
+
+    val reported = context.chatLines().count { "Clash (clash.js)" in it }
+    command("script reload")
+    awaitChat(20) { "Reloaded all scripts" in it } ?: error(".script reload did not finish")
+    check(context.chatLines().count { "Clash (clash.js)" in it } > reported) { ".script reload hid the failure" }
+
+    command("script unload broken.js")
+    check(client { ScriptManager.scripts.none { it.file.name == "broken.js" } }) { "broken.js cannot be unloaded" }
+
+    return "add-on is $state; $clash"
 }
 
 private fun Case.airborneTicks(ticks: Int) = (1..ticks).count {
