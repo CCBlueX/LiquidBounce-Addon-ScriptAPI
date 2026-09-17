@@ -91,6 +91,13 @@ object CommandScript : CommandRegistrar {
                     listScripts()
                 }
             }
+            literal("errors") {
+                loadedScriptNameArgument { name ->
+                    exec { ctx ->
+                        scriptErrors(ctx.get(name))
+                    }
+                }
+            }
             literal("browse") {
                 exec {
                     browseScripts()
@@ -168,6 +175,25 @@ object CommandScript : CommandRegistrar {
         // Without a name of its own the script goes by its file name already.
         val name = if (script.displayName == script.file.name) file else "${script.displayName} ($file)"
         chat(regular(t("list.failed", variable(name), variable(failure.origin), variable(failure.cause.reason))))
+    }
+
+    private fun CmdI18n.scriptErrors(name: String): Int {
+        val script = ScriptManager.scripts.find { it.displayName.equals(name, true) }
+
+        if (script == null) {
+            chat(regular(t("errors.notFound", variable(name))))
+            return 1
+        }
+
+        if (script.errors.isEmpty()) {
+            chat(regular(t("errors.none", variable(name))))
+            return 1
+        }
+
+        script.errors.forEach { error ->
+            chat(regular(t("errors.entry", variable(error.origin), variable(error.cause.reason))))
+        }
+        return 1
     }
 
     private fun CmdI18n.debugScript(
