@@ -68,6 +68,30 @@ jobs:
 
           gh release upload "${{ github.event.release.tag_name }}" "$JAR" --clobber
 
+      - name: Publish to the marketplace
+        if: github.event_name == 'release' && !github.event.release.prerelease && vars.MARKETPLACE_ITEM_ID != ''
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          ITEM_ID: ${{ vars.MARKETPLACE_ITEM_ID }}
+          VERSION: ${{ github.event.release.tag_name }}
+          CHANGELOG: ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
+
+          JAR=$(find build/libs -name '*.jar' -not -name '*-sources.jar' | head -n1)
+          [ -n "$JAR" ] || { echo "[ERROR] no jar in build/libs" >&2; exit 1; }
+
+          # The client unpacks a revision and expects exactly one jar at its root.
+          zip -j addon.zip "$JAR"
+
+          # --form-string: -F would read a release body starting with @ as a file path.
+          curl --fail-with-body -X POST \
+            "https://api.liquidbounce.net/api/v3/marketplace/$ITEM_ID/revisions" \
+            -H "Authorization: Bearer $API_TOKEN" \
+            -F "file=@addon.zip" \
+            --form-string "version=$VERSION" \
+            --form-string "changelog=$CHANGELOG"
+
   gametest:
     runs-on: ubuntu-latest
     steps:
