@@ -126,6 +126,7 @@ class ScriptModule(val script: PolyglotScript, moduleObject: Map<String, Any>) :
             }
 
             logger.error("${script.scriptName}::$name -> Event Function $event threw an error", throwable)
+            script.report("$name::$event", throwable)
 
             // Disable the module if an error occurs
             enabled = false

@@ -29,7 +29,11 @@ class ScriptApiAddon : LiquidBounceAddon() {
     override fun onInitialize() {
         ScriptManager.initializeEngine()
         registerCommand(CommandScript)
-        ScriptManager.loadAll()
+
+        // Anything thrown from here makes the client withdraw the add-on, and `.script` with it.
+        runCatching(ScriptManager::loadAll).onFailure {
+            logger.error("Unable to load the scripts.", it)
+        }
     }
 
     /**

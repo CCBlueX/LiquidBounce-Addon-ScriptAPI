@@ -12,6 +12,7 @@
   "liquidbounce.command.script.list.description": "Lists all scripts.",
   "liquidbounce.command.script.list.noScripts": "There are no scripts.",
   "liquidbounce.command.script.list.scripts": "Scripts: %s.",
+  "liquidbounce.command.script.list.failed": "Script %s failed to %s due to '%s'.",
   "liquidbounce.command.script.load.description": "Loads a script.",
   "liquidbounce.command.script.load.name.description": "Name of the script.",
   "liquidbounce.command.script.load.alreadyLoaded": "Script named %s is already loaded.",

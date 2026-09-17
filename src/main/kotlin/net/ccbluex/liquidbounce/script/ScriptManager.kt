@@ -147,10 +147,13 @@ object ScriptManager {
     ): PolyglotScript {
         require(isInitialized) { "Cannot load scripts before the script engine is initialized." }
 
-        val script = PolyglotScript(language, file, debugOptions)
-        script.initScript()
+        // A failed script stays listed until its file is given another try.
+        scripts.removeIf { it.file == file && it.failed }
 
+        // Registered first: if it fails, it stays as a failed script that says why.
+        val script = PolyglotScript(language, file, debugOptions)
         scripts += script
+        script.initScript()
         return script
     }
 
@@ -169,7 +172,13 @@ object ScriptManager {
      * Enables all loaded scripts. This method iterates over the list of loaded scripts and enables each one.
      */
     fun enableAll() {
-        scripts.forEach(PolyglotScript::enable)
+        scripts.forEach { script ->
+            runCatching {
+                script.enable()
+            }.onFailure {
+                logger.error("[ScriptAPI] Unable to enable script '${script.file.name}'.", it)
+            }
+        }
 
         if (scripts.isNotEmpty()) {
             // Reload the ClickGUI to update the module list.

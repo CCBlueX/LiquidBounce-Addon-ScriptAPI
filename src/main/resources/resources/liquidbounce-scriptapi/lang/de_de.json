@@ -12,6 +12,7 @@
   "liquidbounce.command.script.list.description": "Listet alle Skripte auf.",
   "liquidbounce.command.script.list.noScripts": "Es gibt keine Skripte.",
   "liquidbounce.command.script.list.scripts": "Skripte: %s.",
+  "liquidbounce.command.script.list.failed": "Das Skript %s ist bei '%s' aufgrund von '%s' fehlgeschlagen.",
   "liquidbounce.command.script.load.description": "Lädt ein Skript.",
   "liquidbounce.command.script.load.name.description": "Name des Skripts.",
   "liquidbounce.command.script.load.alreadyLoaded": "Das Skript mit dem Namen %s wurde bereits geladen.",

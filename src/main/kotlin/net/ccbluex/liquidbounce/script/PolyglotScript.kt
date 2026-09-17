@@ -51,13 +51,22 @@ import java.util.function.Consumer
 import java.util.function.Function
 import kotlin.time.measureTime
 
+/**
+ * @param origin `load` or `enable` when fatal, otherwise the handler that threw, `Module::event` or `enable event`
+ * @param fatal the script was closed over it
+ */
+class ScriptError(val origin: String, val cause: Throwable, val fatal: Boolean)
+
 @Suppress("TooManyFunctions")
 class PolyglotScript(
     val language: String, val file: File,
     val debugOptions: ScriptDebugOptions = ScriptDebugOptions()
 ) : AutoCloseable {
 
-    private val context: Context = Context.newBuilder(language)
+    // Built by initScript, so that a script which cannot even get a context still ends up as a failed one.
+    private lateinit var context: Context
+
+    private fun createContext(): Context = Context.newBuilder(language)
         .allowHostAccess(HostAccess.ALL) // Allow access to all Java classes
         .allowHostClassLookup { true }
         .currentWorkingDirectory(file.parentFile.toPath())
@@ -146,6 +155,36 @@ class PolyglotScript(
     lateinit var scriptAuthors: Array<String>
 
     /**
+     * [scriptName] once the script has registered itself, its file name until then.
+     */
+    val displayName: String
+        get() = if (::scriptName.isInitialized) scriptName else file.name
+
+    /**
+     * Everything that went wrong in this script. A fatal entry is the last one.
+     */
+    val errors = mutableListOf<ScriptError>()
+
+    val failure: ScriptError?
+        get() = errors.lastOrNull { it.fatal }
+
+    /**
+     * A failed script is closed and has nothing registered, but stays in [ScriptManager.scripts]
+     * until it is unloaded or its file is loaded again.
+     */
+    val failed: Boolean
+        get() = failure != null
+
+    fun report(origin: String, cause: Throwable) {
+        errors += ScriptError(origin, cause, fatal = false)
+    }
+
+    private fun fail(origin: String, cause: Throwable) {
+        errors += ScriptError(origin, cause, fatal = true)
+        close()
+    }
+
+    /**
      * Whether the script is enabled
      */
     private var scriptEnabled = false
@@ -164,6 +203,8 @@ class PolyglotScript(
      */
     fun initScript() {
         try {
+            context = createContext()
+
             // Evaluate script
             val duration = measureTime {
                 context.eval(Source.newBuilder(language, file).build())
@@ -179,7 +220,7 @@ class PolyglotScript(
             logger.info("[ScriptAPI] Successfully loaded script '${file.name}' in ${duration.inWholeMilliseconds}ms.")
         } catch (e: Exception) {
             logger.error("[ScriptAPI] Failed to load script '${file.name}'.", e)
-            context.close()
+            fail("load", e)
             throw e
         }
     }
@@ -291,16 +332,31 @@ class PolyglotScript(
      * Called when the client enables the script.
      */
     fun enable() {
-        if (scriptEnabled) {
+        if (scriptEnabled || failed) {
             return
         }
 
         callGlobalEvent("enable")
 
-        registeredModules.forEach(ModuleManager::addModule)
-        CommandManager.registerNodes(registeredCommands)
-
-        registeredModes.forEach { mode -> mode.parent.addMode(mode) }
+        // A taken name throws half way through. Commands go last, they register all or nothing.
+        val addedModules = mutableListOf<ClientModule>()
+        val addedModes = mutableListOf<ScriptMode>()
+        try {
+            registeredModules.forEach { module ->
+                ModuleManager.addModule(module)
+                addedModules += module
+            }
+            registeredModes.forEach { mode ->
+                mode.parent.addMode(mode)
+                addedModes += mode
+            }
+            CommandManager.registerNodes(registeredCommands)
+        } catch (e: Exception) {
+            addedModes.forEach { mode -> mode.parent.removeMode(mode) }
+            addedModules.forEach(ModuleManager::removeModule)
+            fail("enable", e)
+            throw e
+        }
         scriptEnabled = true
     }
 
@@ -329,7 +385,9 @@ class PolyglotScript(
      * Called when the client unloads the script.
      */
     override fun close() {
-        context.close(true)
+        if (::context.isInitialized) {
+            context.close(true)
+        }
     }
 
     /**
@@ -341,9 +399,10 @@ class PolyglotScript(
             globalEvents[eventName]?.run()
         } catch (throwable: Throwable) {
             logger.error(
-                "${file.name}::$scriptName -> Event Function $eventName threw an error",
+                "${file.name}::$displayName -> Event Function $eventName threw an error",
                 throwable
             )
+            report("$eventName event", throwable)
         }
     }
 }

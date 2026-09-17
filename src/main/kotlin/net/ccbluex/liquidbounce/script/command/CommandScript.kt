@@ -120,7 +120,7 @@ object CommandScript : CommandRegistrar {
         argument(
             "name",
             ClientStringArgumentType.word(),
-            suggestions(strings = { ScriptManager.scripts.map { it.scriptName } }),
+            suggestions(strings = { ScriptManager.scripts.map { it.displayName } }),
             block,
         )
 
@@ -145,15 +145,29 @@ object CommandScript : CommandRegistrar {
 
     private fun CmdI18n.listScripts(): Int {
         val scripts = ScriptManager.scripts
-        val scriptNames = scripts.map { script -> "${script.scriptName} (${script.language})" }
+        val scriptNames = scripts.filterNot { it.failed }
+            .map { script -> "${script.scriptName} (${script.language})" }
 
-        if (scriptNames.isEmpty()) {
+        if (scripts.isEmpty()) {
             chat(regular(t("list.noScripts")))
             return 1
         }
 
-        chat(regular(t("list.scripts", variable(scriptNames.joinToString(", ")))))
+        if (scriptNames.isNotEmpty()) {
+            chat(regular(t("list.scripts", variable(scriptNames.joinToString(", ")))))
+        }
+        listFailed()
         return 1
+    }
+
+    private val Throwable.reason get() = message?.trim() ?: toString()
+
+    private fun CmdI18n.listFailed() = ScriptManager.scripts.forEach { script ->
+        val failure = script.failure ?: return@forEach
+        val file = script.file.relativeToOrSelf(ScriptManager.root).path
+        // Without a name of its own the script goes by its file name already.
+        val name = if (script.displayName == script.file.name) file else "${script.displayName} ($file)"
+        chat(regular(t("list.failed", variable(name), variable(failure.origin), variable(failure.cause.reason))))
     }
 
     private fun CmdI18n.debugScript(
@@ -207,7 +221,7 @@ object CommandScript : CommandRegistrar {
         scriptFile: File,
         name: String,
     ) {
-        ScriptManager.scripts.find { it.file == scriptFile }?.also { script ->
+        ScriptManager.scripts.find { it.file == scriptFile && !it.failed }?.also { script ->
             chat(regular(t("debug.alreadyLoaded", variable(name))))
 
             runCatching {
@@ -221,7 +235,7 @@ object CommandScript : CommandRegistrar {
     }
 
     private fun CmdI18n.unloadScript(name: String): Int {
-        val script = ScriptManager.scripts.find { it.scriptName.equals(name, true) }
+        val script = ScriptManager.scripts.find { it.displayName.equals(name, true) }
 
         if (script == null) {
             chat(regular(t("unload.notFound", variable(name))))
@@ -247,7 +261,7 @@ object CommandScript : CommandRegistrar {
         }
 
         // Check if script is already loaded
-        if (ScriptManager.scripts.any { it.file == scriptFile }) {
+        if (ScriptManager.scripts.any { it.file == scriptFile && !it.failed }) {
             chat(regular(t("load.alreadyLoaded", variable(name))))
             return 1
         }
@@ -267,6 +281,7 @@ object CommandScript : CommandRegistrar {
             ScriptManager.reload()
         }.onSuccess {
             chat(regular(t("reload.reloaded")))
+            listFailed()
         }.onFailure {
             chat(regular(t("reload.reloadFailed", variable(it.message ?: "unknown"))))
         }
