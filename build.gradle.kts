@@ -49,11 +49,11 @@ loom.runs.named("clientGameTest") {
     providers.gradleProperty("gametest.only").orNull?.let { property("scriptapi.gametest.only", it) }
 }
 
-// The startup case needs its scripts in place before the client starts.
+// The startup and marketplace cases need their scripts in place before the client starts.
 val seedGameTestScripts = tasks.register<Sync>("seedGameTestScripts") {
     mustRunAfter("deleteGameTestRunDir")
-    from("src/gametest/scripts")
-    into(layout.buildDirectory.dir("run/clientGameTest/LiquidBounce/scripts"))
+    from("src/gametest/LiquidBounce")
+    into(layout.buildDirectory.dir("run/clientGameTest/LiquidBounce"))
 }
 
 tasks.matching { it.name == "runClientGameTest" }.configureEach {

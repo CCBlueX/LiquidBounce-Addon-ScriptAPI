@@ -1,0 +1,16 @@
+{
+  "name": "marketplace",
+  "value": [
+    {
+      "name": "subscribed",
+      "value": [
+        {
+          "name": "MarketplaceProbe",
+          "id": -1,
+          "type": "Script",
+          "author": "CCBlueX"
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,7 @@
  */
 package net.ccbluex.liquidbounce.script
 
+import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItemType
 import net.ccbluex.liquidbounce.features.addon.LiquidBounceAddon
 import net.ccbluex.liquidbounce.script.command.CommandScript
 
@@ -29,6 +30,7 @@ class ScriptApiAddon : LiquidBounceAddon() {
     override fun onInitialize() {
         ScriptManager.initializeEngine()
         registerCommand(CommandScript)
+        registerMarketplaceHandler(MarketplaceItemType.SCRIPT, ScriptManager::syncMarketplace)
 
         // Anything thrown from here makes the client withdraw the add-on, and `.script` with it.
         runCatching(ScriptManager::loadAll).onFailure {

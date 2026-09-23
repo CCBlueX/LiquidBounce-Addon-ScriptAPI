@@ -24,10 +24,15 @@ import com.mojang.blaze3d.platform.NativeImage
 import net.ccbluex.liquidbounce.features.addon.AddonManager
 import net.ccbluex.liquidbounce.features.addon.AddonState
 import net.ccbluex.liquidbounce.features.command.CommandManager
+import net.ccbluex.liquidbounce.features.marketplace.MarketplaceManager
 import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.script.ScriptManager
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -49,6 +54,8 @@ class ExampleScriptsGameTest : FabricClientGameTest {
 
     override fun runTest(context: ClientGameTestContext) {
         val harness = GameTestHarness(context)
+        // Before startup, whose `.script reload` would load the subscribed script again.
+        harness.case("marketplace") { marketplace() }
         harness.case("startup") { startup() }
         harness.case("AutoJump.mjs") { autoJump("AutoJump.mjs") }
         harness.case("AutoJump-2.js") { autoJump("AutoJump-2.js") }
@@ -58,6 +65,27 @@ class ExampleScriptsGameTest : FabricClientGameTest {
         harness.runCases()
     }
 
+}
+
+private const val PROBE_ITEM = -1
+
+/**
+ * `marketplace.json` subscribes to a script that is unpacked already, the way LiquidLauncher leaves one.
+ */
+private fun Case.marketplace(): String {
+    val script = client { ScriptManager.scripts.find { it.displayName == "MarketplaceProbe" } }
+        ?: error("the subscribed script was not loaded")
+    check(!script.failed) { "the subscribed script failed: ${script.failure?.cause}" }
+    module("MarketplaceProbe")
+
+    // Off the test thread: unsubscribing ends on the render thread, which only runs while the test waits.
+    val removal = CoroutineScope(Dispatchers.IO).async { MarketplaceManager.unsubscribe(PROBE_ITEM) }
+    context.waitFor { removal.isCompleted }
+    runBlocking { removal.await() }
+
+    check(client { ModuleManager["MarketplaceProbe"] } == null) { "MarketplaceProbe survived the unsubscribe" }
+    check(client { script !in ScriptManager.scripts }) { "the unsubscribed script is still listed" }
+    return "MarketplaceProbe loaded at startup, unloaded by unsubscribing"
 }
 
 /**

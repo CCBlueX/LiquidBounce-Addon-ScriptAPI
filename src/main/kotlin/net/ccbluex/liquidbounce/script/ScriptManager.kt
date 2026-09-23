@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.script
 
 import net.ccbluex.liquidbounce.config.ConfigSystem
+import net.ccbluex.liquidbounce.features.marketplace.SubscribedItem
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui
 import net.ccbluex.liquidbounce.script.bindings.api.ScriptAsyncUtil
 import net.ccbluex.liquidbounce.script.bindings.api.ScriptContextProvider
@@ -66,8 +67,14 @@ object ScriptManager {
     }
 
     /**
-     * Loads all scripts found in the scripts directory. This method scans the directory for script files
-     * and directories containing a main script file. It then loads and enables all found scripts.
+     * Scripts installed from the marketplace, by item id.
+     */
+    private val marketplaceScripts = mutableMapOf<Int, PolyglotScript>()
+    private var subscribedScripts = emptyList<SubscribedItem>()
+
+    /**
+     * Loads all scripts found in the scripts directory and the subscribed marketplace scripts. A directory
+     * counts through its main script file. It then loads and enables all found scripts.
      */
     fun loadAll() {
         require(isInitialized) { "Cannot load scripts before the script engine is initialized." }
@@ -76,25 +83,61 @@ object ScriptManager {
         }.orEmpty()
 
         files.forEach { file ->
-            if (file.isDirectory) {
-                // If a directory is found, look for a main script file inside it.
-                val mainFile = file.listFiles { dirFile ->
-                    dirFile.nameWithoutExtension == "main" && Source.findLanguage(dirFile) != null
-                }?.firstOrNull()
-
-                if (mainFile != null) {
-                    loadCatched(mainFile)
-                } else {
-                    logger.warn("Unable to find main inside the directory ${file.name}.")
-                }
-            } else {
-                // If the file is a script, load it immediately.
-                loadCatched(file)
-            }
+            entryOf(file)?.let(::loadCatched)
         }
+        subscribedScripts.forEach(::loadMarketplaceScript)
 
         // After loading, enable all the scripts.
         enableAll()
+    }
+
+    /**
+     * Brings the loaded marketplace scripts in line with [items]: removed or updated ones are unloaded,
+     * new ones loaded and enabled.
+     */
+    fun syncMarketplace(items: List<SubscribedItem>) {
+        subscribedScripts = items
+        if (!isInitialized) {
+            return
+        }
+
+        val folders = items.associate { it.id to it.getInstallationFolder() }
+        marketplaceScripts.filter { (id, script) -> folders[id] != script.file.parentFile }.values
+            .forEach(::unloadScript)
+
+        val loaded = items.filter { it.id !in marketplaceScripts }.mapNotNull(::loadMarketplaceScript)
+        loaded.forEach { script ->
+            runCatching(script::enable).onFailure {
+                logger.error("[ScriptAPI] Unable to enable script '${script.file.name}'.", it)
+            }
+        }
+        if (loaded.isNotEmpty()) {
+            mc.execute(ModuleClickGui::sync)
+        }
+    }
+
+    private fun loadMarketplaceScript(item: SubscribedItem): PolyglotScript? {
+        // Not unpacked yet: the handler runs again once it is.
+        val entry = item.getInstallationFolder()?.let(::entryOf) ?: return null
+        loadCatched(entry)
+        // A failed one too, so that an update or removal takes it along.
+        return scripts.find { it.file == entry }?.also { marketplaceScripts[item.id] = it }
+    }
+
+    /**
+     * The script a file stands for: itself, or the main script inside a directory.
+     */
+    private fun entryOf(file: File): File? {
+        if (!file.isDirectory) {
+            return file.takeIf { Source.findLanguage(it) != null }
+        }
+
+        return file.listFiles { dirFile ->
+            dirFile.nameWithoutExtension == "main" && Source.findLanguage(dirFile) != null
+        }?.firstOrNull() ?: run {
+            logger.warn("Unable to find main inside the directory ${file.name}.")
+            null
+        }
     }
 
     /**
@@ -104,6 +147,7 @@ object ScriptManager {
         scripts.forEach(PolyglotScript::disable)
         scripts.forEach(PolyglotScript::close)
         scripts.clear()
+        marketplaceScripts.clear()
         ScriptAsyncUtil.TickScheduler.clear()
         ScriptContextProvider.cleanup()
     }
@@ -166,6 +210,7 @@ object ScriptManager {
         script.disable()
         script.close()
         scripts.remove(script)
+        marketplaceScripts.values.remove(script)
     }
 
     /**
