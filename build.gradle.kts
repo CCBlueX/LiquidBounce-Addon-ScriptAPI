@@ -7,7 +7,8 @@ plugins {
 
 base {
     archivesName = project.property("archives_base_name") as String
-    version = project.property("mod_version") as String
+    // The Minecraft version the add-on is built for goes into its version, e.g. 1.0.0+26.3
+    version = "${project.property("mod_version")}+${libs.versions.minecraft.get()}"
     group = project.property("maven_group") as String
 }
 
@@ -120,7 +121,9 @@ run {
 }
 
 tasks.processResources {
-    val modVersion = providers.gradleProperty("mod_version")
+    val modVersion = providers.gradleProperty("mod_version").zip(libs.versions.minecraft) { version, minecraft ->
+        "$version+$minecraft"
+    }
     val minecraftVersion = libs.versions.minecraft
     val loaderVersion = libs.versions.fabric.loader
     val fabricKotlinVersion = libs.versions.fabric.kotlin
