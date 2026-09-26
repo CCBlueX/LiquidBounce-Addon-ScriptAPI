@@ -132,3 +132,64 @@ jobs:
             build/run/clientGameTest/screenshots/
             build/run/clientGameTest/logs/latest.log
           if-no-files-found: ignore
+
+  # Every push to main that changes a script publishes it as a new marketplace revision, once the
+  # game tests have run it.
+  publish-scripts:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: gametest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - script: nes_emulator
+            item-id: ${{ vars.NES_EMULATOR_ITEM_ID }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Publish to the marketplace
+        if: matrix.item-id != ''
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          ITEM_ID: ${{ matrix.item-id }}
+          DIR: examples/${{ matrix.script }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          # A manual run publishes every script, and so does a push whose previous tip is unknown: a
+          # new branch has none, and a force-push can leave it unreachable.
+          RANGE="-1"
+          if [ "$GITHUB_EVENT_NAME" = push ] && git fetch --quiet origin "$BEFORE" 2>/dev/null; then
+            if git diff --quiet "$BEFORE" HEAD -- "$DIR"; then
+              echo "$DIR did not change"
+              exit 0
+            fi
+            RANGE="$BEFORE..HEAD"
+          fi
+
+          # This run can finish after a newer push; that one publishes the newer script instead.
+          git fetch --quiet origin main
+          if [ "$(git rev-parse "HEAD:$DIR")" != "$(git rev-parse "FETCH_HEAD:$DIR")" ]; then
+            echo "$DIR changed again on main"
+            exit 0
+          fi
+
+          VERSION=$(sed -n 's/^ *version: *"\([^"]*\)".*/\1/p' "$DIR/main.js" | head -n1)
+          [ -n "$VERSION" ] || { echo "[ERROR] no version in $DIR/main.js" >&2; exit 1; }
+          CHANGELOG=$(git log --format='- %s' $RANGE -- "$DIR")
+
+          # The client runs the main.js at the root of a revision.
+          git archive --format=zip -o script.zip "HEAD:$DIR"
+
+          curl --fail-with-body -X POST \
+            "https://api.liquidbounce.net/api/v3/marketplace/$ITEM_ID/revisions" \
+            -H "Authorization: Bearer $API_TOKEN" \
+            -F "file=@script.zip" \
+            --form-string "version=v$VERSION+${GITHUB_SHA::7}" \
+            --form-string "changelog=$CHANGELOG"
