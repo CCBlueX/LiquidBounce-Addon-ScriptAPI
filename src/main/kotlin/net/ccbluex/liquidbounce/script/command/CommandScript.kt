@@ -18,6 +18,7 @@
  */
 package net.ccbluex.liquidbounce.script.command
 
+import com.mojang.blaze3d.Blaze3D
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import net.ccbluex.liquidbounce.features.command.CommandRegistrar
@@ -67,7 +68,7 @@ object CommandScript : CommandRegistrar {
             }
             literal("debug") {
                 scriptNameArgument { name ->
-                    optional("protocol", TaggedArgumentType<DebugProtocol>("protocol")) { protocol ->
+                    optional("protocol", TaggedArgumentType("protocol", DebugProtocol.entries)) { protocol ->
                         optional("suspendOnStart", BooleanArgumentType("suspendOnStart")) { suspendOnStart ->
                             optional("inspectInternals", BooleanArgumentType("inspectInternals")) { inspectInternals ->
                                 optional("port", IntegerArgumentType.integer(1, 65535)) { port ->
@@ -139,13 +140,13 @@ object CommandScript : CommandRegistrar {
             return 1
         }
 
-        Util.getPlatform().openFile(scriptFile)
+        Blaze3D.openPath(scriptFile.toPath())
         chat(regular(t("edit.opened", variable(name))))
         return 1
     }
 
     private fun CmdI18n.browseScripts(): Int {
-        Util.getPlatform().openFile(ScriptManager.root)
+        Blaze3D.openPath(ScriptManager.root.toPath())
         chat(regular(t("browse.browse", clickablePath(ScriptManager.root))))
         return 1
     }

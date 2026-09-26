@@ -141,7 +141,7 @@ class GameTestHarness(private val context: ClientGameTestContext) {
         check(unknown.isEmpty()) { "$ONLY_PROPERTY names unknown cases $unknown, known are ${cases.keys}" }
 
         context.worldBuilder().create().use { world ->
-            world.clientLevel.waitForChunksRender()
+            world.connection.waitForChunksRender()
             context.waitFor { it.player?.onGround() == true }
 
             for ((name, block) in cases) {

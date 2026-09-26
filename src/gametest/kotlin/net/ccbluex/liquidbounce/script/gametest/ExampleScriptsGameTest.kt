@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.script.gametest
 
 import com.google.gson.JsonParser
+import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.blaze3d.platform.NativeImage
 import net.ccbluex.liquidbounce.features.addon.AddonManager
 import net.ccbluex.liquidbounce.features.addon.AddonState
@@ -27,7 +28,6 @@ import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.script.ScriptManager
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
-import org.lwjgl.glfw.GLFW
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -141,11 +141,11 @@ private fun Case.macros(): String {
         command("macros add k hello from a macro")
         command("macros add u .macros list")
 
-        context.input.pressKey(GLFW.GLFW_KEY_J)
+        context.input.pressKey(InputConstants.KEY_J)
         awaitChat(40) { it.endsWith("* $player waves from a macro") } ?: error("J did not run the server command")
-        context.input.pressKey(GLFW.GLFW_KEY_K)
+        context.input.pressKey(InputConstants.KEY_K)
         awaitChat(40) { it.endsWith("<$player> hello from a macro") } ?: error("K did not send the chat message")
-        context.input.pressKey(GLFW.GLFW_KEY_U)
+        context.input.pressKey(InputConstants.KEY_U)
         awaitChat(40) { it.endsWith("u -> '.macros list'") } ?: error("U did not run the client command")
 
         command("macros remove k")
@@ -195,7 +195,7 @@ private fun Case.nesEmulator(): String {
         client { module.enabled = true }
         context.waitTicks(100)
         val menu = screenshot("menu")
-        context.input.holdKeyFor(GLFW.GLFW_KEY_V, 6)
+        context.input.holdKeyFor(InputConstants.KEY_V, 6)
         context.waitTicks(120)
         val results = screenshot("results")
         client { module.enabled = false }

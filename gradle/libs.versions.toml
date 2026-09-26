@@ -1,15 +1,15 @@
 [versions]
 jdk = "25"
 
-minecraft = "26.2"
+minecraft = "26.3"
 fabric-loom = "1.17-SNAPSHOT"
-fabric-loader = "0.19.3"
-fabric-api = "0.153.0+26.2"
+fabric-loader = "0.19.5"
+fabric-api = "0.160.5+26.3"
 
-kotlin = "2.4.0"
-fabric-kotlin = "1.13.12+kotlin.2.4.0"
+kotlin = "2.4.20"
+fabric-kotlin = "1.14.1+kotlin.2.4.20"
 
-liquidbounce = "0.40.1+26.2-SNAPSHOT"
+liquidbounce = "0.40.1+26.3-SNAPSHOT"
 
 polyglot = "25.0.3"
 okhttp = "5.5.0"
