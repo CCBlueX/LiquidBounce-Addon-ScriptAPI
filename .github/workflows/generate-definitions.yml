@@ -1,11 +1,14 @@
-# Inherited from the LiquidBounce repository, where it ran against a source build of the client.
-# Here LiquidBounce is a dependency instead, so `runClient` has to bring it in as a mod - that path
-# has not been verified yet. Kept on workflow_dispatch only until it has been, so a release does not
-# fail on it.
 name: Generate TypeScript Definitions
 
+# LiquidBounce's release workflow dispatches this with the version it just published.
 on:
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      liquidbounce:
+        description: 'LiquidBounce version to generate against, e.g. 0.41.0+26.3 (default: the one in libs.versions.toml)'
+        required: false
 
 jobs:
   build:
@@ -23,8 +26,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Create Mods Directory
-        run: mkdir -p run/mods
+      - name: Resolve LiquidBounce version
+        id: version
+        env:
+          INPUT: ${{ inputs.liquidbounce }}
+        run: |
+          set -euo pipefail
+          VERSION="${INPUT:-$(sed -n 's/^liquidbounce = "\(.*\)"$/\1/p' gradle/libs.versions.toml)}"
+          echo "liquidbounce=$VERSION" >> "$GITHUB_OUTPUT"
+          # Snapshots are versioned by date, so they must not become `latest`.
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=latest" >> "$GITHUB_OUTPUT"; fi
 
       - name: Download ts-generator
         run: |
@@ -49,13 +60,14 @@ jobs:
           LB_INTEROP_SKIP: "true"
         run: |
           chmod +x ./gradlew
-          timeout 60m xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" ./gradlew runClient -Dfabric.headless=true || exit 0
+          timeout 60m xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" ./gradlew runClient -Dfabric.headless=true -Pliquidbounce=${{ steps.version.outputs.liquidbounce }} || exit 0
 
       - name: Upload TypeScript Definitions
         uses: actions/upload-artifact@v7
         with:
           name: 'liquidbounce-script-api'
           path: run/LiquidBounce/scripts/@ccbluex/liquidbounce-script-api/
+          if-no-files-found: error
 
       - name: Publish to NPM
         uses: JS-DevTools/npm-publish@v4
@@ -63,3 +75,4 @@ jobs:
           token: ${{ secrets.NPM_TOKEN }}
           package: run/LiquidBounce/scripts/@ccbluex/liquidbounce-script-api/package.json
           access: public
+          tag: ${{ steps.version.outputs.tag }}

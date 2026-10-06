@@ -84,7 +84,10 @@ dependencies {
     implementation(libs.fabric.loader)
     implementation(libs.fabric.api)
     implementation(libs.fabric.kotlin)
-    implementation(libs.liquidbounce)
+    implementation(libs.liquidbounce) {
+        // -Pliquidbounce=<version>, used by the definitions workflow for a fresh client release
+        providers.gradleProperty("liquidbounce").orNull?.let { version { strictly(it) } }
+    }
 
     // ScriptAPI
     jij(libs.polyglot)
