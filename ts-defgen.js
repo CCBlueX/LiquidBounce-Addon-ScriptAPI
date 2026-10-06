@@ -29,7 +29,8 @@ const HashMap_1 = require("@ccbluex/liquidbounce-script-api/java/util/HashMap");
 const ArrayList_1 = require("@ccbluex/liquidbounce-script-api/java/util/ArrayList");
 const JvmClassMappingKt_1 = require("@ccbluex/liquidbounce-script-api/kotlin/jvm/JvmClassMappingKt");
 const Class_1 = require("@ccbluex/liquidbounce-script-api/java/lang/Class");
-const EventKt_1 = require("@ccbluex/liquidbounce-script-api/net/ccbluex/liquidbounce/event/EventKt");
+const EventManager_1 = require("@ccbluex/liquidbounce-script-api/net/ccbluex/liquidbounce/event/EventManager");
+const Tag_1 = require("@ccbluex/liquidbounce-script-api/net/ccbluex/liquidbounce/annotations/Tag");
 const ClassPath_1 = require("@ccbluex/liquidbounce-script-api/com/google/common/reflect/ClassPath");
 const ScriptManager_1 = require("@ccbluex/liquidbounce-script-api/net/ccbluex/liquidbounce/script/ScriptManager");
 const LiquidBounce_1 = require("@ccbluex/liquidbounce-script-api/net/ccbluex/liquidbounce/LiquidBounce");
@@ -99,10 +100,12 @@ function generate(path, packageName) {
         const javaClasses = globalEntries
             .filter((entry) => entry[1] != undefined)
             .map((entry) => (entry[1] instanceof Class_1.Class ? entry[1] : entry[1].class))
-            .filter((entry) => entry != undefined);
-        const eventEntries = ReflectionUtil.getDeclaredField(EventKt_1.EventKt, "EVENT_NAME_TO_CLASS").entrySet().toArray()
-            .map(entry => [entry[0], j2kSafe(entry[1])])
-            .filter(entry => entry[1]);
+            .filter((entry) => entry != undefined)
+            // Aliases such as Vec3d and Vec3 share a class, which must be imported once
+            .filter((entry, index, all) => all.indexOf(entry) === index);
+        const eventEntries = EventManager_1.EventManager.INSTANCE.knownEventClasses.toArray()
+            .map(clazz => [clazz.getAnnotation(Tag_1.Tag.class)?.name(), j2kSafe(clazz)])
+            .filter(entry => entry[0] && entry[1]);
         Client.displayChatMessage(`found ${eventEntries.length} events`);
         Client.displayChatMessage("looking for all jvm classes");
         const allClassInfos = findAllClassInfos();
@@ -151,7 +154,11 @@ function generate(path, packageName) {
         Client.displayChatMessage(`generating types for ${classes.length} classes`);
         Client.displayChatMessage("this may take a while, please wait...");
         // @ts-expect-error
-        const generated = new TsGen(classes, new HashMap_1.HashMap(), new ArrayList_1.ArrayList(), new ArrayList_1.ArrayList(), "number", NULL);
+        const mappings = new HashMap_1.HashMap();
+        // Any JS value can be passed where the JVM takes an Object
+        // @ts-expect-error
+        mappings.put(j2kSafe(Java.type("java.lang.Object").class), "any");
+        const generated = new TsGen(classes, mappings, new ArrayList_1.ArrayList(), new ArrayList_1.ArrayList(), "number", NULL);
         const today = LocalDate_1.LocalDate.now();
         const formatter = DateTimeFormatter_1.DateTimeFormatter.ofPattern('y.M.d');
         Client.displayChatMessage("writing types");
@@ -170,7 +177,7 @@ function generate(path, packageName) {
         const embeddedDefinition = `
 // ambient.ts
 // imports
-import "../augmentations/index.d.ts"
+import "../augmentations/ScriptModule.augmentation.d.ts"
 ${javaClasses
             .map((clazz) => {
                 return `import { ${getName(clazz)} as ${getName(clazz)}_ } from "../types/${clazz.name.replaceAll(".", "/")}";`;
@@ -187,39 +194,24 @@ ${globalEntries
             .map((entry) => `    export const ${entry[0]}: ${getName(entry[1].class)}_;`)
             .join("\n\n")}
 
-${javaClasses
-            .map((clazz) => {
-                var _a, _b;
-                // Check if this class is exported as a constructor (appears in globalEntries as Class)
-                const isExportedAsClass = globalEntries.some(([name, value]) => value instanceof Class_1.Class && value === clazz);
-                if (isExportedAsClass) {
-                    const exportName = (_a = globalEntries.find(([name, value]) => value instanceof Class_1.Class && value === clazz)) === null || _a === void 0 ? void 0 : _a[0];
-                    // Determine if it's a concrete class or interface
-                    // You might need to adjust this logic based on how you distinguish them
-                    const isInterface = ((_b = clazz.isInterface) === null || _b === void 0 ? void 0 : _b.call(clazz)) || false; // Adjust this condition as needed
-                    if (isInterface) {
-                        return `    export const ${exportName}: ${getName(clazz)}_;`;
-                    }
-                    else {
-                        return `    export const ${exportName}: typeof ${getName(clazz)}_;`;
-                    }
-                }
-                return null;
-            })
-            .filter((entry) => entry !== null)
+${globalEntries
+            .filter((entry) => entry[1] instanceof Class_1.Class)
+            .map(([name, clazz]) => clazz.isInterface()
+                ? `    export const ${name}: ${getName(clazz)}_;`
+                : `    export const ${name}: typeof ${getName(clazz)}_;`)
             .join("\n\n")}
 
 }
 `;
         const importsForScriptEventPatch = `
 // imports for
-${eventEntries.map((entry) => entry[1]).map((kClassImpl) => `import type { ${kClassImpl.simpleName} } from '../types/${kClassImpl.qualifiedName.replaceAll(".", "/")}.d.ts'`).join("\n")}
+${eventEntries.map((entry) => JvmClassMappingKt_1.JvmClassMappingKt.getJavaClass(entry[1])).map((javaClass) => `import type { ${getName(javaClass)} } from '../types/${javaClass.name.replaceAll(".", "/")}.d.ts'`).join("\n")}
 
 
 `;
         const onEventsForScriptPatch = `
 // on events
-${eventEntries.map((entry) => `on(eventName: "${entry[0]}", handler: (${entry[0]}Event: ${entry[1].simpleName}) => void): Unit;`).join("\n")}
+${eventEntries.map((entry) => `on(eventName: "${entry[0]}", handler: (${entry[0]}Event: ${getName(JvmClassMappingKt_1.JvmClassMappingKt.getJavaClass(entry[1]))}) => void): Unit;`).join("\n")}
 
 
 `;
@@ -273,8 +265,20 @@ const packageName = "@ccbluex/liquidbounce-script-api";
 const path = ScriptManager_1.ScriptManager.INSTANCE.root.path;
 // @ts-expect-error
 if (Java.type("java.lang.System").getenv("SCRIPT_TYPEGEN_BUILD")) {
-    generate(path, packageName);
-    mc.close();
+    // Scripts load while the client is still initializing; stopping before that is done makes it
+    // report a fatal error and wait on a dialog.
+    // @ts-expect-error
+    UnsafeThread.run(() => {
+        while (!LiquidBounce_1.LiquidBounce.INSTANCE.isInitialized) {
+            Thread_1.Thread.sleep(100);
+        }
+        try {
+            generate(path, packageName);
+        }
+        finally {
+            mc.stop();
+        }
+    });
 }
 script.registerCommand({
     name: "ts-defgen",
