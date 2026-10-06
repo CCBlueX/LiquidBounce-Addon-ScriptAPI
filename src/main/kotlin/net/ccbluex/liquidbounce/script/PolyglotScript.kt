@@ -258,7 +258,7 @@ class PolyglotScript(
      * @see ScriptModule
      */
     @Suppress("unused")
-    fun registerModule(moduleObject: Map<String, Any>, callback: Consumer<ClientModule>) {
+    fun registerModule(moduleObject: Map<String, Any>, callback: Consumer<ScriptModule>) {
         val module = ScriptModule(this, moduleObject)
         registeredModules += module
         callback.accept(module)
