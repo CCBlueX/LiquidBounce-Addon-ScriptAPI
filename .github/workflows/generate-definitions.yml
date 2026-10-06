@@ -13,6 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -50,17 +51,20 @@ jobs:
         run: |
           cp ts-defgen.js run/LiquidBounce/scripts/
 
-      - name: Install Xvfb
-        run: sudo apt-get install -y xvfb
+      # The game renders through Mesa's EGL
+      - name: Install Xvfb and EGL
+        run: sudo apt-get update && sudo apt-get install -y xvfb libegl1 libegl-mesa0
 
       - name: Run LiquidBounce with Gradle
         env:
           SCRIPT_TYPEGEN_BUILD: "true"  # Set the CI_BUILD flag to auto-execute ts-defgen
           LB_BROWSER_SKIP: "true"
           LB_INTEROP_SKIP: "true"
+          # Minecraft asks for an sRGB framebuffer, which Xvfb's GLX does not offer
+          SDL_VIDEO_FORCE_EGL: 1
         run: |
           chmod +x ./gradlew
-          timeout 60m xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" ./gradlew runClient -Dfabric.headless=true -Pliquidbounce=${{ steps.version.outputs.liquidbounce }} || exit 0
+          timeout 60m xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient -Pliquidbounce=${{ steps.version.outputs.liquidbounce }} || exit 0
 
       - name: Upload TypeScript Definitions
         uses: actions/upload-artifact@v7
