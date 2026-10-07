@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5

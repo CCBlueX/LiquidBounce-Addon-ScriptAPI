@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setting up JDK
         uses: actions/setup-java@v5
         with:
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setting up JDK
         uses: actions/setup-java@v5
         with:
@@ -148,7 +148,7 @@ jobs:
             item-id: ${{ vars.NES_EMULATOR_ITEM_ID }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
