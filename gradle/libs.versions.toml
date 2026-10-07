@@ -9,7 +9,7 @@ fabric-api = "0.160.5+26.3"
 kotlin = "2.4.20"
 fabric-kotlin = "1.14.1+kotlin.2.4.20"
 
-liquidbounce = "0.40.1+26.3-SNAPSHOT"
+liquidbounce = "0.41.0+26.3"
 
 polyglot = "25.0.3"
 okhttp = "5.5.0"
