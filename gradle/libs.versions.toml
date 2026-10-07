@@ -11,7 +11,7 @@ fabric-kotlin = "1.14.1+kotlin.2.4.20"
 
 liquidbounce = "0.41.0+26.3"
 
-polyglot = "25.0.3"
+polyglot = "25.4.4.1.1"
 okhttp = "5.5.0"
 fastutil4k = "0.2.10"
 
