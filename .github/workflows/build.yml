@@ -82,22 +82,27 @@ jobs:
           ITEM_ID: ${{ vars.MARKETPLACE_ITEM_ID }}
           VERSION: ${{ github.event.release.tag_name }}
           CHANGELOG: ${{ github.event.release.body }}
+          SOURCE_RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
           set -euo pipefail
-
+          SOURCE_COMMIT=$(git rev-parse HEAD)
           JAR=$(find build/libs -name '*.jar' -not -name '*-sources.jar' | head -n1)
           [ -n "$JAR" ] || { echo "[ERROR] no jar in build/libs" >&2; exit 1; }
-
           # The client unpacks a revision and expects exactly one jar at its root.
           zip -j addon.zip "$JAR"
-
           # --form-string: -F would read a release body starting with @ as a file path.
           curl --fail-with-body -X POST \
             "https://api.liquidbounce.net/api/v3/marketplace/$ITEM_ID/revisions" \
             -H "Authorization: Bearer $API_TOKEN" \
             -F "file=@addon.zip" \
             --form-string "version=$VERSION" \
-            --form-string "changelog=$CHANGELOG"
+            --form-string "changelog=$CHANGELOG" \
+            --form-string "source_repository=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --form-string "source_ref=$GITHUB_REF" \
+            --form-string "source_commit=$SOURCE_COMMIT" \
+            --form-string "source_release_tag=$VERSION" \
+            --form-string "source_release_url=$SOURCE_RELEASE_URL" \
+            --form-string "source_build_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
   gametest:
     runs-on: ubuntu-latest
