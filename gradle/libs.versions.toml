@@ -2,32 +2,21 @@
 jdk = "25"
 
 minecraft = "26.3"
-fabric-loom = "1.17-SNAPSHOT"
-fabric-loader = "0.19.5"
-fabric-api = "0.160.5+26.3"
+fabric-loom = "1.19-SNAPSHOT"
 
 kotlin = "2.4.20"
-fabric-kotlin = "1.14.1+kotlin.2.4.20"
 
-liquidbounce = "0.41.0+26.3"
+liquidbounce = "0.42.0+26.3"
 
 polyglot = "25.0.3"
-okhttp = "5.5.0"
-fastutil4k = "0.2.10"
 
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
-fabric-loader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabric-loader" }
-fabric-api = { group = "net.fabricmc.fabric-api", name = "fabric-api", version.ref = "fabric-api" }
-fabric-kotlin = { group = "net.fabricmc", name = "fabric-language-kotlin", version.ref = "fabric-kotlin" }
 liquidbounce = { group = "net.ccbluex", name = "liquidbounce", version.ref = "liquidbounce" }
 
 polyglot = { group = "org.graalvm.polyglot", name = "polyglot", version.ref = "polyglot" }
 polyglot-tools = { group = "org.graalvm.polyglot", name = "tools-community", version.ref = "polyglot" }
 polyglot-js = { group = "org.graalvm.polyglot", name = "js-community", version.ref = "polyglot" }
-
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-fastutil4k-extensionsOnly = { group = "net.ccbluex", name = "fastutil4k-extensions-only", version.ref = "fastutil4k" }
 
 [plugins]
 fabric-loom = { id = "net.fabricmc.fabric-loom", version.ref = "fabric-loom" }

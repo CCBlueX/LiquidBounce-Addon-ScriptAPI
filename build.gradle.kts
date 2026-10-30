@@ -43,10 +43,10 @@ fabricApi {
 
 loom.runs.named("clientGameTest") {
     // Otherwise the client downloads and starts a browser for its web UI, which no test touches.
-    environmentVariable("LB_BROWSER_SKIP", "true")
-    environmentVariable("LB_INTEROP_SKIP", "true")
-    property("scriptapi.gametest.examples", file("examples").absolutePath)
-    providers.gradleProperty("gametest.only").orNull?.let { property("scriptapi.gametest.only", it) }
+    environmentVars.put("LB_BROWSER_SKIP", "true")
+    environmentVars.put("LB_INTEROP_SKIP", "true")
+    systemProperties.put("scriptapi.gametest.examples", file("examples").absolutePath)
+    providers.gradleProperty("gametest.only").orNull?.let { systemProperties.put("scriptapi.gametest.only", it) }
 }
 
 // The startup and marketplace cases need their scripts in place before the client starts.
@@ -81,9 +81,6 @@ val jij: Configuration = configurations.create("jij").apply {
 dependencies {
     minecraft(libs.minecraft)
 
-    implementation(libs.fabric.loader)
-    implementation(libs.fabric.api)
-    implementation(libs.fabric.kotlin)
     implementation(libs.liquidbounce) {
         // -Pliquidbounce=<version>, used by the definitions workflow for a fresh client release
         providers.gradleProperty("liquidbounce").orNull?.let { version { strictly(it) } }
@@ -93,14 +90,6 @@ dependencies {
     jij(libs.polyglot)
     jij(libs.polyglot.js)
     jij(libs.polyglot.tools)
-
-    // Used by ScriptAsyncUtil.request; the client bundles it too, but an add-on cannot rely on
-    // another mod's nested jars being on its classpath.
-    compileOnly(libs.okhttp)
-
-    // Inline-only extensions the client compiles against as `compileOnlyApi`, so they are not in
-    // its POM and have to be declared again here.
-    compileOnly(libs.fastutil4k.extensionsOnly)
 
     testImplementation(kotlin("test"))
 }
@@ -123,13 +112,19 @@ run {
     }
 }
 
+val clientVersions = configurations.compileClasspath.map { classpath ->
+    classpath.incoming.resolutionResult.allComponents
+        .mapNotNull { it.moduleVersion }
+        .associate { "${it.group}:${it.name}" to it.version }
+}
+
 tasks.processResources {
     val modVersion = providers.gradleProperty("mod_version").zip(libs.versions.minecraft) { version, minecraft ->
         "$version+$minecraft"
     }
     val minecraftVersion = libs.versions.minecraft
-    val loaderVersion = libs.versions.fabric.loader
-    val fabricKotlinVersion = libs.versions.fabric.kotlin
+    val loaderVersion = clientVersions.map { it.getValue("net.fabricmc:fabric-loader") }
+    val fabricKotlinVersion = clientVersions.map { it.getValue("net.fabricmc:fabric-language-kotlin") }
 
     inputs.property("version", modVersion)
     inputs.property("minecraft_version", minecraftVersion)
