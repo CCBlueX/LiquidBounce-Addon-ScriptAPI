@@ -10,7 +10,7 @@ usual end-of-game summaries ("1st Killer - ...", "Winner: ...") and titles ("VIC
 const script = registerScript({
     name: "AutoL",
     version: "1.0.0",
-    authors: ["Tsikyng Kirisame", "CzechHek", "1zuna"]
+    authors: ["Tsikyng Kirisame", "CzechHek", "Izuna Seikatsu"]
 });
 
 function plain(text) {
