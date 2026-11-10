@@ -21,6 +21,8 @@ package net.ccbluex.liquidbounce.script.gametest
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.blaze3d.platform.NativeImage
+import net.ccbluex.liquidbounce.event.EventManager
+import net.ccbluex.liquidbounce.event.events.TitleEvent
 import net.ccbluex.liquidbounce.features.addon.AddonManager
 import net.ccbluex.liquidbounce.features.addon.AddonState
 import net.ccbluex.liquidbounce.features.command.CommandManager
@@ -29,6 +31,7 @@ import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.script.ScriptManager
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.minecraft.network.chat.Component
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -61,6 +64,7 @@ class ExampleScriptsGameTest : FabricClientGameTest {
         harness.case("AutoJump-2.js") { autoJump("AutoJump-2.js") }
         harness.case("macros.js") { macros() }
         harness.case("translator.js") { translator() }
+        harness.case("autol") { autoL() }
         harness.case("nes_emulator") { nesEmulator() }
         harness.runCases()
     }
@@ -201,6 +205,28 @@ private fun Case.translator(): String {
         skip("Google Translate unreachable: $reply")
     }
     error("translation failed: $reply")
+}
+
+private fun Case.autoL(): String {
+    load("autol/main.js")
+    val player = client { it.user.name }
+
+    val autoGG = module("AutoGG")
+    client { autoGG.enabled = true }
+    client { EventManager.callEvent(TitleEvent.Title(Component.literal("VICTORY!"))) }
+    awaitChat(100) { it.endsWith("<$player> gg") } ?: error("no gg after the victory title")
+    client { autoGG.enabled = false }
+
+    val autoL = module("AutoL")
+    // Up to 0.42.0 the client does not tell scripts about kills
+    val killEvent = client { EventManager.eventClassByName("playerKill") }
+        ?: return "gg after the victory title; this client has no playerKill event"
+    client { autoL.enabled = true }
+    client { EventManager.callEvent(killEvent.getConstructor(String::class.java).newInstance("Enemy")) }
+    awaitChat(40) { it.endsWith("<$player> L Enemy") } ?: error("no message after the kill")
+    client { autoL.enabled = false }
+
+    return "gg after the victory title, L after the kill"
 }
 
 private const val NESTEST_URL = "https://raw.githubusercontent.com/christopherpow/nes-test-roms/" +

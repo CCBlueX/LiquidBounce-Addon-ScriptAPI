@@ -151,6 +151,8 @@ jobs:
         include:
           - script: nes_emulator
             item-id: ${{ vars.NES_EMULATOR_ITEM_ID }}
+          - script: autol
+            item-id: ${{ vars.AUTOL_ITEM_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

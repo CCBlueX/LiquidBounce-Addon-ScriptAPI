@@ -12,4 +12,6 @@ The following examples are currently available:
 
 - [translator.js](translator.js): Translates text through Google Translate with `.gtranslate <from> <to> <text>`.
 
+- [autol](autol): Writes a message to every player you kill (AutoL) and says gg when a game ends (AutoGG).
+
 - [nes_emulator](nes_emulator): Plays NES games in the client. ROMs go in `LiquidBounce/scripts/nes_emulator/roms`.
