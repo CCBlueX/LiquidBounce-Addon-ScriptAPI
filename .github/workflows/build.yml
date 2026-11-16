@@ -92,17 +92,17 @@ jobs:
           zip -j addon.zip "$JAR"
           # --form-string: -F would read a release body starting with @ as a file path.
           curl --fail-with-body -X POST \
-            "https://api.liquidbounce.net/api/v3/marketplace/$ITEM_ID/revisions" \
+            "https://api.liquidbounce.net/marketplace/items/$ITEM_ID/revisions" \
             -H "Authorization: Bearer $API_TOKEN" \
             -F "file=@addon.zip" \
             --form-string "version=$VERSION" \
             --form-string "changelog=$CHANGELOG" \
-            --form-string "source_repository=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
-            --form-string "source_ref=$GITHUB_REF" \
-            --form-string "source_commit=$SOURCE_COMMIT" \
-            --form-string "source_release_tag=$VERSION" \
-            --form-string "source_release_url=$SOURCE_RELEASE_URL" \
-            --form-string "source_build_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            --form-string "sourceRepository=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --form-string "sourceRef=$GITHUB_REF" \
+            --form-string "sourceCommit=$SOURCE_COMMIT" \
+            --form-string "sourceReleaseTag=$VERSION" \
+            --form-string "sourceReleaseUrl=$SOURCE_RELEASE_URL" \
+            --form-string "sourceBuildUrl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
   gametest:
     runs-on: ubuntu-latest
@@ -195,7 +195,7 @@ jobs:
           git archive --format=zip -o script.zip "HEAD:$DIR"
 
           curl --fail-with-body -X POST \
-            "https://api.liquidbounce.net/api/v3/marketplace/$ITEM_ID/revisions" \
+            "https://api.liquidbounce.net/marketplace/items/$ITEM_ID/revisions" \
             -H "Authorization: Bearer $API_TOKEN" \
             -F "file=@script.zip" \
             --form-string "version=v$VERSION+${GITHUB_SHA::7}" \
