@@ -6,7 +6,7 @@ fabric-loom = "1.19-SNAPSHOT"
 
 kotlin = "2.4.20"
 
-liquidbounce = "0.42.0+26.3"
+liquidbounce = "0.43.0+26.3"
 
 polyglot = "25.0.3"
 
